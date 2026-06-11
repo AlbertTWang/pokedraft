@@ -1,0 +1,561 @@
+{
+  "electric": {
+    "name": "Electric",
+    "damageFrom": {
+      "x2": [
+        "ground"
+      ],
+      "x05": [
+        "flying",
+        "steel",
+        "electric"
+      ],
+      "x0": []
+    },
+    "damageTo": {
+      "x2": [
+        "flying",
+        "water"
+      ],
+      "x05": [
+        "grass",
+        "electric",
+        "dragon"
+      ],
+      "x0": [
+        "ground"
+      ]
+    }
+  },
+  "fire": {
+    "name": "Fire",
+    "damageFrom": {
+      "x2": [
+        "ground",
+        "rock",
+        "water"
+      ],
+      "x05": [
+        "bug",
+        "steel",
+        "fire",
+        "grass",
+        "ice",
+        "fairy"
+      ],
+      "x0": []
+    },
+    "damageTo": {
+      "x2": [
+        "bug",
+        "steel",
+        "grass",
+        "ice"
+      ],
+      "x05": [
+        "rock",
+        "fire",
+        "water",
+        "dragon"
+      ],
+      "x0": []
+    }
+  },
+  "poison": {
+    "name": "Poison",
+    "damageFrom": {
+      "x2": [
+        "ground",
+        "psychic"
+      ],
+      "x05": [
+        "fighting",
+        "poison",
+        "bug",
+        "grass",
+        "fairy"
+      ],
+      "x0": []
+    },
+    "damageTo": {
+      "x2": [
+        "grass",
+        "fairy"
+      ],
+      "x05": [
+        "poison",
+        "ground",
+        "rock",
+        "ghost"
+      ],
+      "x0": [
+        "steel"
+      ]
+    }
+  },
+  "ice": {
+    "name": "Ice",
+    "damageFrom": {
+      "x2": [
+        "fighting",
+        "rock",
+        "steel",
+        "fire"
+      ],
+      "x05": [
+        "ice"
+      ],
+      "x0": []
+    },
+    "damageTo": {
+      "x2": [
+        "flying",
+        "ground",
+        "grass",
+        "dragon"
+      ],
+      "x05": [
+        "steel",
+        "fire",
+        "water",
+        "ice"
+      ],
+      "x0": []
+    }
+  },
+  "grass": {
+    "name": "Grass",
+    "damageFrom": {
+      "x2": [
+        "flying",
+        "poison",
+        "bug",
+        "fire",
+        "ice"
+      ],
+      "x05": [
+        "ground",
+        "water",
+        "grass",
+        "electric"
+      ],
+      "x0": []
+    },
+    "damageTo": {
+      "x2": [
+        "ground",
+        "rock",
+        "water"
+      ],
+      "x05": [
+        "flying",
+        "poison",
+        "bug",
+        "steel",
+        "fire",
+        "grass",
+        "dragon"
+      ],
+      "x0": []
+    }
+  },
+  "fighting": {
+    "name": "Fighting",
+    "damageFrom": {
+      "x2": [
+        "flying",
+        "psychic",
+        "fairy"
+      ],
+      "x05": [
+        "rock",
+        "bug",
+        "dark"
+      ],
+      "x0": []
+    },
+    "damageTo": {
+      "x2": [
+        "normal",
+        "rock",
+        "steel",
+        "ice",
+        "dark"
+      ],
+      "x05": [
+        "flying",
+        "poison",
+        "bug",
+        "psychic",
+        "fairy"
+      ],
+      "x0": [
+        "ghost"
+      ]
+    }
+  },
+  "water": {
+    "name": "Water",
+    "damageFrom": {
+      "x2": [
+        "grass",
+        "electric"
+      ],
+      "x05": [
+        "steel",
+        "fire",
+        "water",
+        "ice"
+      ],
+      "x0": []
+    },
+    "damageTo": {
+      "x2": [
+        "ground",
+        "rock",
+        "fire"
+      ],
+      "x05": [
+        "water",
+        "grass",
+        "dragon"
+      ],
+      "x0": []
+    }
+  },
+  "ground": {
+    "name": "Ground",
+    "damageFrom": {
+      "x2": [
+        "water",
+        "grass",
+        "ice"
+      ],
+      "x05": [
+        "poison",
+        "rock"
+      ],
+      "x0": [
+        "electric"
+      ]
+    },
+    "damageTo": {
+      "x2": [
+        "poison",
+        "rock",
+        "steel",
+        "fire",
+        "electric"
+      ],
+      "x05": [
+        "bug",
+        "grass"
+      ],
+      "x0": [
+        "flying"
+      ]
+    }
+  },
+  "psychic": {
+    "name": "Psychic",
+    "damageFrom": {
+      "x2": [
+        "bug",
+        "ghost",
+        "dark"
+      ],
+      "x05": [
+        "fighting",
+        "psychic"
+      ],
+      "x0": []
+    },
+    "damageTo": {
+      "x2": [
+        "fighting",
+        "poison"
+      ],
+      "x05": [
+        "steel",
+        "psychic"
+      ],
+      "x0": [
+        "dark"
+      ]
+    }
+  },
+  "dragon": {
+    "name": "Dragon",
+    "damageFrom": {
+      "x2": [
+        "ice",
+        "dragon",
+        "fairy"
+      ],
+      "x05": [
+        "fire",
+        "water",
+        "grass",
+        "electric"
+      ],
+      "x0": []
+    },
+    "damageTo": {
+      "x2": [
+        "dragon"
+      ],
+      "x05": [
+        "steel"
+      ],
+      "x0": [
+        "fairy"
+      ]
+    }
+  },
+  "ghost": {
+    "name": "Ghost",
+    "damageFrom": {
+      "x2": [
+        "ghost",
+        "dark"
+      ],
+      "x05": [
+        "poison",
+        "bug"
+      ],
+      "x0": [
+        "normal",
+        "fighting"
+      ]
+    },
+    "damageTo": {
+      "x2": [
+        "ghost",
+        "psychic"
+      ],
+      "x05": [
+        "dark"
+      ],
+      "x0": [
+        "normal"
+      ]
+    }
+  },
+  "flying": {
+    "name": "Flying",
+    "damageFrom": {
+      "x2": [
+        "rock",
+        "electric",
+        "ice"
+      ],
+      "x05": [
+        "fighting",
+        "bug",
+        "grass"
+      ],
+      "x0": [
+        "ground"
+      ]
+    },
+    "damageTo": {
+      "x2": [
+        "fighting",
+        "bug",
+        "grass"
+      ],
+      "x05": [
+        "rock",
+        "steel",
+        "electric"
+      ],
+      "x0": []
+    }
+  },
+  "fairy": {
+    "name": "Fairy",
+    "damageFrom": {
+      "x2": [
+        "poison",
+        "steel"
+      ],
+      "x05": [
+        "fighting",
+        "bug",
+        "dark"
+      ],
+      "x0": [
+        "dragon"
+      ]
+    },
+    "damageTo": {
+      "x2": [
+        "fighting",
+        "dragon",
+        "dark"
+      ],
+      "x05": [
+        "poison",
+        "steel",
+        "fire"
+      ],
+      "x0": []
+    }
+  },
+  "steel": {
+    "name": "Steel",
+    "damageFrom": {
+      "x2": [
+        "fighting",
+        "ground",
+        "fire"
+      ],
+      "x05": [
+        "normal",
+        "flying",
+        "rock",
+        "bug",
+        "steel",
+        "grass",
+        "psychic",
+        "ice",
+        "dragon",
+        "fairy"
+      ],
+      "x0": [
+        "poison"
+      ]
+    },
+    "damageTo": {
+      "x2": [
+        "rock",
+        "ice",
+        "fairy"
+      ],
+      "x05": [
+        "steel",
+        "fire",
+        "water",
+        "electric"
+      ],
+      "x0": []
+    }
+  },
+  "dark": {
+    "name": "Dark",
+    "damageFrom": {
+      "x2": [
+        "fighting",
+        "bug",
+        "fairy"
+      ],
+      "x05": [
+        "ghost",
+        "dark"
+      ],
+      "x0": [
+        "psychic"
+      ]
+    },
+    "damageTo": {
+      "x2": [
+        "ghost",
+        "psychic"
+      ],
+      "x05": [
+        "fighting",
+        "dark",
+        "fairy"
+      ],
+      "x0": []
+    }
+  },
+  "bug": {
+    "name": "Bug",
+    "damageFrom": {
+      "x2": [
+        "flying",
+        "rock",
+        "fire"
+      ],
+      "x05": [
+        "fighting",
+        "ground",
+        "grass"
+      ],
+      "x0": []
+    },
+    "damageTo": {
+      "x2": [
+        "grass",
+        "psychic",
+        "dark"
+      ],
+      "x05": [
+        "fighting",
+        "flying",
+        "poison",
+        "ghost",
+        "steel",
+        "fire",
+        "fairy"
+      ],
+      "x0": []
+    }
+  },
+  "normal": {
+    "name": "Normal",
+    "damageFrom": {
+      "x2": [
+        "fighting"
+      ],
+      "x05": [],
+      "x0": [
+        "ghost"
+      ]
+    },
+    "damageTo": {
+      "x2": [],
+      "x05": [
+        "rock",
+        "steel"
+      ],
+      "x0": [
+        "ghost"
+      ]
+    }
+  },
+  "rock": {
+    "name": "Rock",
+    "damageFrom": {
+      "x2": [
+        "fighting",
+        "ground",
+        "steel",
+        "water",
+        "grass"
+      ],
+      "x05": [
+        "normal",
+        "flying",
+        "poison",
+        "fire"
+      ],
+      "x0": []
+    },
+    "damageTo": {
+      "x2": [
+        "flying",
+        "bug",
+        "fire",
+        "ice"
+      ],
+      "x05": [
+        "fighting",
+        "ground",
+        "steel"
+      ],
+      "x0": []
+    }
+  }
+}
