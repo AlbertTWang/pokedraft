@@ -1,4 +1,0 @@
-{
-  "comment": "Scopes the serverless functions to CommonJS. The root package.json is type:module (for Vite/ESM), but Vercel's Node builder would then emit the functions as native ESM, where extensionless imports and JSON imports fail at load. CommonJS resolves both.",
-  "type": "commonjs"
-}

@@ -13,3 +13,7 @@ vite.config.d.ts
 # Editor + local Claude settings (launch.json is intentionally tracked)
 .vscode/
 .claude/settings.local.json
+
+# Vercel CLI local link/output
+.vercel
+.env*

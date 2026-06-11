@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getLeaderboard, handle } from "./_lib/handlers";
+import { getLeaderboard, handle } from "./_lib/handlers.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {

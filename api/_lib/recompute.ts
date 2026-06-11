@@ -3,10 +3,10 @@
 // NOTE: this does not yet verify the team was actually drafted legitimately —
 // that requires the deferred server-dealt / daily-seed mode. See README roadmap.
 
-import { getPokemonById } from "../../src/game/data";
-import { evaluateTeam } from "../../src/game/scoring";
-import type { Pokemon } from "../../src/game/types";
-import { ApiError } from "./errors";
+import { getPokemonById } from "../../src/game/data.js";
+import { evaluateTeam } from "../../src/game/scoring.js";
+import type { Pokemon } from "../../src/game/types.js";
+import { ApiError } from "./errors.js";
 
 export const TEAM_SIZE = 6;
 

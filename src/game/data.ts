@@ -1,8 +1,8 @@
 // Loads the pre-baked datasets and builds lookup indexes used by the game.
 
-import pokemonRaw from "../data/pokemon.json";
-import typesRaw from "../data/types.json";
-import type { Pokemon, TypeData, TypeName } from "./types";
+import pokemonRaw from "../data/pokemon.json" with { type: "json" };
+import typesRaw from "../data/types.json" with { type: "json" };
+import type { Pokemon, TypeData, TypeName } from "./types.js";
 
 export const ALL_POKEMON = pokemonRaw as Pokemon[];
 export const TYPES = typesRaw as Record<TypeName, TypeData>;

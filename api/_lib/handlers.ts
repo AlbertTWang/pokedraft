@@ -6,10 +6,10 @@ import type {
   LeaderboardResponse,
   RunEntry,
   SubmitResponse,
-} from "../../src/game/leaderboardTypes";
-import type { ApiResult } from "./errors";
-import { rankScore, scoreTeam } from "./recompute";
-import { getStore } from "./store";
+} from "../../src/game/leaderboardTypes.js";
+import type { ApiResult } from "./errors.js";
+import { rankScore, scoreTeam } from "./recompute.js";
+import { getStore } from "./store.js";
 
 const MAX_NAME = 20;
 // Matches ASCII control characters (0x00-0x1F and 0x7F).
@@ -71,4 +71,4 @@ export async function getLeaderboard(params: { limit?: number }): Promise<ApiRes
 }
 
 // Re-export so the thin adapters can import everything from one module.
-export { ApiError, handle } from "./errors";
+export { ApiError, handle } from "./errors.js";

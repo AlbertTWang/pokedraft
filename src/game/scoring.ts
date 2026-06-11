@@ -1,8 +1,8 @@
 // Team evaluation: strength (BST) + defensive synergy + offensive coverage.
 // All weights are intentionally simple and tunable — this is a v1.
 
-import { TYPES, TYPE_NAMES } from "./data";
-import type { Pokemon, TypeName } from "./types";
+import { TYPES, TYPE_NAMES } from "./data.js";
+import type { Pokemon, TypeName } from "./types.js";
 
 // How much damage `attackType` deals to a defender with `defenderTypes`.
 export function defensiveMultiplier(attackType: TypeName, defenderTypes: TypeName[]): number {

@@ -5,7 +5,7 @@
 // Production with no Redis env: null -> handlers return a clean 503.
 
 import { Redis } from "@upstash/redis";
-import type { RunEntry } from "../../src/game/leaderboardTypes";
+import type { RunEntry } from "../../src/game/leaderboardTypes.js";
 
 const ZKEY = "pd:lb"; // sorted set: member = run id, score = composite rank score
 const runKey = (id: string) => `pd:run:${id}`;
