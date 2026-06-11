@@ -19,13 +19,6 @@ export async function handle(fn: () => Promise<ApiResult>): Promise<ApiResult> {
   } catch (e) {
     if (e instanceof ApiError) return { status: e.status, json: { error: e.message } };
     console.error("[api] unhandled error:", e);
-    // TEMP DIAGNOSTIC: surface the error so we can see prod crashes. Revert after.
-    return {
-      status: 500,
-      json: {
-        error: "Something went wrong.",
-        _debug: e instanceof Error ? { message: e.message, stack: e.stack?.split("\n").slice(0, 6) } : String(e),
-      },
-    };
+    return { status: 500, json: { error: "Something went wrong." } };
   }
 }

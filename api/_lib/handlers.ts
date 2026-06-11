@@ -1,9 +1,5 @@
 // Framework-agnostic handlers shared by the Vercel functions (prod) and the
 // Vite dev middleware (local). They return { status, json }.
-//
-// Heavy modules (data/scoring, redis) are imported lazily inside the handlers
-// so a failure surfaces as a caught 500 rather than a module-load crash, and
-// so requests that 503 early never pay to load the dataset.
 
 import { randomUUID } from "node:crypto";
 import type {
@@ -12,6 +8,8 @@ import type {
   SubmitResponse,
 } from "../../src/game/leaderboardTypes";
 import type { ApiResult } from "./errors";
+import { rankScore, scoreTeam } from "./recompute";
+import { getStore } from "./store";
 
 const MAX_NAME = 20;
 // Matches ASCII control characters (0x00-0x1F and 0x7F).
@@ -29,13 +27,11 @@ export async function submitRun(body: {
   name?: unknown;
   teamIds?: unknown;
 }): Promise<ApiResult> {
-  const { getStore } = await import("./store");
   const store = getStore();
   if (!store) {
     return { status: 503, json: { error: "Leaderboard is not configured yet." } };
   }
 
-  const { scoreTeam, rankScore } = await import("./recompute");
   const scored = scoreTeam(body?.teamIds); // throws ApiError on bad input
   const teamIds = (body!.teamIds as unknown[]).map((n) => Number(n));
 
@@ -58,7 +54,6 @@ export async function submitRun(body: {
 }
 
 export async function getLeaderboard(params: { limit?: number }): Promise<ApiResult> {
-  const { getStore } = await import("./store");
   const store = getStore();
   if (!store) {
     return { status: 503, json: { error: "Leaderboard is not configured yet." } };
