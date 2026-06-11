@@ -35,6 +35,8 @@ export async function submitRun(name: string, teamIds: number[]): Promise<Submit
 }
 
 export async function fetchLeaderboard(limit = 25): Promise<LeaderboardResponse> {
-  const res = await fetch(`/api/leaderboard?limit=${limit}`);
+  // Cache-bust so a player always sees the live board (incl. a run they just
+  // submitted); the server's short edge cache still absorbs direct/bot hits.
+  const res = await fetch(`/api/leaderboard?limit=${limit}&_=${Date.now()}`);
   return parse<LeaderboardResponse>(res);
 }
