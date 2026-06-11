@@ -1,30 +1,54 @@
-import { useReducer } from "react";
+import { useReducer, useState } from "react";
 import { initGame, reducer, TEAM_SIZE } from "./game/gameLogic";
 import { TYPE_COLORS, typeLabel } from "./game/typeColors";
 import { Lifelines } from "./components/Lifelines";
 import { PokemonCard } from "./components/PokemonCard";
 import { TeamTray } from "./components/TeamTray";
 import { Results } from "./components/Results";
+import { Leaderboard } from "./components/Leaderboard";
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, initGame);
+  const [leaderboard, setLeaderboard] = useState<{ open: boolean; highlightId?: string }>({
+    open: false,
+  });
 
-  if (state.phase === "results") {
-    return (
-      <div className="app">
-        <Header />
-        <Results team={state.team} onRestart={() => dispatch({ type: "restart" })} />
-      </div>
-    );
-  }
+  const openLeaderboard = (highlightId?: string) => setLeaderboard({ open: true, highlightId });
+  const closeLeaderboard = () => setLeaderboard((s) => ({ ...s, open: false }));
 
+  return (
+    <div className="app">
+      <Header onOpenLeaderboard={() => openLeaderboard()} />
+
+      {state.phase === "results" ? (
+        <Results
+          team={state.team}
+          onRestart={() => dispatch({ type: "restart" })}
+          onOpenLeaderboard={openLeaderboard}
+        />
+      ) : (
+        <DraftView state={state} dispatch={dispatch} />
+      )}
+
+      {leaderboard.open && (
+        <Leaderboard onClose={closeLeaderboard} highlightId={leaderboard.highlightId} />
+      )}
+    </div>
+  );
+}
+
+function DraftView({
+  state,
+  dispatch,
+}: {
+  state: ReturnType<typeof initGame>;
+  dispatch: React.Dispatch<Parameters<typeof reducer>[1]>;
+}) {
   const { deck } = state;
   const spyglassLeft = state.lifelines.spyglass;
 
   return (
-    <div className="app">
-      <Header />
-
+    <>
       <div className="progress">
         <span className="progress__label">
           Pick {state.round + 1} of {TEAM_SIZE}
@@ -36,7 +60,9 @@ export default function App() {
         <div className="round__banner">
           <span className="round__eyebrow">This round's type</span>
           <span className="round__type">{typeLabel(deck.type)}</span>
-          <span className="round__hint">Draft the Pokémon you think is strongest — BSTs are hidden.</span>
+          <span className="round__hint">
+            Draft the Pokémon you think is strongest — BSTs are hidden.
+          </span>
         </div>
 
         <Lifelines
@@ -59,16 +85,18 @@ export default function App() {
           ))}
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
-function Header() {
+function Header({ onOpenLeaderboard }: { onOpenLeaderboard: () => void }) {
   return (
     <header className="header">
       <img src="/pokeball.svg" alt="" className="header__logo" />
       <h1 className="header__title">PokéDraft</h1>
-      <span className="header__tag">Build the ultimate team</span>
+      <button className="header__lb" onClick={onOpenLeaderboard}>
+        🏆 Leaderboard
+      </button>
     </header>
   );
 }
