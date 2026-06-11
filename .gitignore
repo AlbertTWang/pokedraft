@@ -8,7 +8,9 @@ scripts/.cache
 # TypeScript / Vite build artifacts
 *.tsbuildinfo
 vite.config.js
+vite.config.mjs
 vite.config.d.ts
+vite.config.d.mts
 
 # Editor + local Claude settings (launch.json is intentionally tracked)
 .vscode/
