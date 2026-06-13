@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "fetch-data": "node scripts/fetchData.mjs",
+    "fetch-trainers": "node scripts/fetchTrainers.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview"

@@ -1,0 +1,69 @@
+{
+  "youngster": [
+    "youngster"
+  ],
+  "gymleader": [
+    "brock",
+    "misty",
+    "ltsurge",
+    "erika",
+    "koga",
+    "sabrina",
+    "blaine",
+    "giovanni",
+    "falkner",
+    "bugsy",
+    "whitney",
+    "morty",
+    "chuck",
+    "jasmine",
+    "pryce",
+    "clair",
+    "roxanne",
+    "brawly",
+    "wattson",
+    "flannery",
+    "norman",
+    "winona",
+    "juan",
+    "roark",
+    "gardenia",
+    "maylene",
+    "fantina",
+    "byron",
+    "candice",
+    "volkner"
+  ],
+  "elite4": [
+    "bruno",
+    "will",
+    "karen",
+    "sidney",
+    "glacia",
+    "aaron",
+    "bertha",
+    "flint",
+    "lucian",
+    "caitlin",
+    "shauntal",
+    "marshal",
+    "grimsley",
+    "siebold",
+    "malva",
+    "wikstrom",
+    "drasna"
+  ],
+  "champion": [
+    "blue",
+    "lance",
+    "steven",
+    "wallace",
+    "cynthia",
+    "alder",
+    "iris",
+    "diantha"
+  ],
+  "master": [
+    "red"
+  ]
+}

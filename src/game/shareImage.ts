@@ -1,6 +1,6 @@
 // Generates the shareable PokéDraft scorecard PNG on a <canvas>, styled after
-// the SixRings card. Best-effort: returns null if canvas/sprites fail so callers
-// can fall back to text sharing.
+// the SixRings card, topped with a trainer portrait for the tier. Best-effort:
+// returns null if canvas/sprites fail so callers can fall back to text sharing.
 
 import { TYPE_COLORS, typeLabel } from "./typeColors";
 import type { Pokemon } from "./types";
@@ -16,10 +16,11 @@ export interface CardOptions {
   strengthPts: number;
   defensePts: number;
   coveragePts: number;
+  trainerSrc?: string | null;
 }
 
 const W = 1080;
-const H = 1560;
+const H = 1700;
 const PAD = 56;
 const FONT = '"Arial", "Segoe UI", system-ui, sans-serif';
 
@@ -49,23 +50,32 @@ export async function generateShareImage(opts: CardOptions): Promise<Blob | null
   ctx.lineWidth = 3;
   ctx.stroke();
 
+  // Load images up front (trainer + team sprites)
+  const [trainerImg, ...sprites] = await Promise.all([
+    opts.trainerSrc ? loadImage(opts.trainerSrc) : Promise.resolve(null),
+    ...opts.team.map((p) => loadImage(p.sprite)),
+  ]);
+
+  // --- Trainer portrait ---
+  drawAvatar(ctx, trainerImg, W / 2, 124, 80);
+
   // --- Header ---
   center(ctx);
   ctx.fillStyle = GOLD;
   ctx.font = `700 30px ${FONT}`;
-  ctx.fillText("I DRAFTED A", W / 2, 92);
+  ctx.fillText("I DRAFTED A", W / 2, 252);
 
   const title = `${opts.tier.toUpperCase()} TEAM`;
-  const titleSize = fitFont(ctx, title, W - 2 * PAD, 78, "800");
+  const titleSize = fitFont(ctx, title, W - 2 * PAD, 76, "800");
   ctx.font = `800 ${titleSize}px ${FONT}`;
   ctx.fillStyle = GOLD;
-  ctx.fillText(title, W / 2, 168);
+  ctx.fillText(title, W / 2, 322);
 
   const named = opts.name && opts.name !== "Anonymous";
   if (named) {
     ctx.fillStyle = MUTED;
     ctx.font = `600 26px ${FONT}`;
-    ctx.fillText(`by ${opts.name}`, W / 2, 210);
+    ctx.fillText(`by ${opts.name}`, W / 2, 364);
   }
 
   // --- Six pokéballs ---
@@ -74,12 +84,12 @@ export async function generateShareImage(opts: CardOptions): Promise<Blob | null
   const ballRow = 6 * (ballR * 2) + 5 * ballGap;
   let bx = (W - ballRow) / 2 + ballR;
   for (let i = 0; i < 6; i++) {
-    drawPokeball(ctx, bx, 258, ballR, i < opts.team.length);
+    drawPokeball(ctx, bx, 410, ballR, i < opts.team.length);
     bx += ballR * 2 + ballGap;
   }
 
   // --- Stat boxes: PERCENTILE / SCORE / RANK PAST 24H ---
-  const boxY = 300;
+  const boxY = 452;
   const boxH = 124;
   const boxGap = 16;
   const boxW = (W - 2 * PAD - 2 * boxGap) / 3;
@@ -90,8 +100,7 @@ export async function generateShareImage(opts: CardOptions): Promise<Blob | null
   statBox(ctx, PAD + 2 * (boxW + boxGap), boxY, boxW, boxH, "RANK PAST 24H", rank);
 
   // --- Pokémon rows ---
-  const sprites = await Promise.all(opts.team.map((p) => loadImage(p.sprite)));
-  const rowTop0 = 466;
+  const rowTop0 = 620;
   const rowH = 132;
   opts.team.forEach((p, i) => {
     drawRow(ctx, rowTop0 + i * rowH, rowH, i + 1, p, sprites[i]);
@@ -126,7 +135,7 @@ export async function generateShareImage(opts: CardOptions): Promise<Blob | null
   center(ctx);
   ctx.fillStyle = GOLD;
   ctx.font = `800 28px ${FONT}`;
-  ctx.fillText("POKEDRAFT-LYART.VERCEL.APP", W / 2, H - 52);
+  ctx.fillText("POKEDRAFT-LYART.VERCEL.APP", W / 2, H - 44);
 
   return await new Promise<Blob | null>((resolve) => {
     try {
@@ -139,6 +148,28 @@ export async function generateShareImage(opts: CardOptions): Promise<Blob | null
 
 // --- drawing helpers ------------------------------------------------------
 
+function drawAvatar(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement | null,
+  cx: number,
+  cy: number,
+  r: number,
+) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = "#1a1b26";
+  ctx.fill();
+  ctx.clip();
+  if (img) drawContain(ctx, img, cx - r + 6, cy - r + 6, 2 * r - 12, 2 * r - 12);
+  ctx.restore();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = GOLD;
+  ctx.lineWidth = 5;
+  ctx.stroke();
+}
+
 function drawRow(
   ctx: CanvasRenderingContext2D,
   top: number,
@@ -149,7 +180,6 @@ function drawRow(
 ) {
   const midY = top + h / 2;
 
-  // pick number + primary type
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
   ctx.fillStyle = GOLD;
@@ -159,11 +189,9 @@ function drawRow(
   ctx.font = `700 16px ${FONT}`;
   ctx.fillText(typeLabel(p.types[0]).toUpperCase(), PAD + 4, midY + 24);
 
-  // sprite
   const spriteX = PAD + 78;
   if (sprite) drawContain(ctx, sprite, spriteX, midY - 52, 104, 104);
 
-  // name + type badges
   const nameX = PAD + 200;
   ctx.fillStyle = TEXT;
   ctx.font = `800 33px ${FONT}`;
@@ -172,7 +200,6 @@ function drawRow(
   let badgeX = nameX;
   for (const t of p.types) badgeX += drawTypeBadge(ctx, badgeX, midY + 14, t) + 8;
 
-  // OFF / DEF / BST
   const off = p.stats.attack + p.stats.spAtk + p.stats.speed;
   const def = p.stats.hp + p.stats.defense + p.stats.spDef;
   miniStat(ctx, W - PAD - 360, midY, "OFF", `${off}`);
@@ -187,7 +214,6 @@ function drawRow(
   ctx.font = `800 40px ${FONT}`;
   ctx.fillText(`${p.bst}`, W - PAD - 4, midY + 18);
 
-  // divider
   ctx.strokeStyle = LINE;
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -253,12 +279,10 @@ function drawPokeball(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: 
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.fillStyle = "#15161e";
   ctx.fill();
-  // top half
   ctx.beginPath();
   ctx.arc(cx, cy, r, Math.PI, 0);
   ctx.fillStyle = filled ? GOLD : "#2a2c39";
   ctx.fill();
-  // outline + equator
   ctx.strokeStyle = filled ? GOLD : "#3a3d4d";
   ctx.lineWidth = 2.5;
   ctx.beginPath();
@@ -268,7 +292,6 @@ function drawPokeball(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: 
   ctx.moveTo(cx - r, cy);
   ctx.lineTo(cx + r, cy);
   ctx.stroke();
-  // center button
   ctx.beginPath();
   ctx.arc(cx, cy, r * 0.32, 0, Math.PI * 2);
   ctx.fillStyle = "#15161e";

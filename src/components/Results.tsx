@@ -5,6 +5,7 @@ import type { SubmitResponse } from "../game/leaderboardTypes";
 import { evaluateTeam } from "../game/scoring";
 import { buildShareText, copyText, nativeShare, ordinal, type ShareData } from "../game/share";
 import { generateShareImage } from "../game/shareImage";
+import { pickTrainer } from "../game/trainers";
 import { TYPE_EMOJI } from "../game/typeEmoji";
 import type { Pokemon } from "../game/types";
 
@@ -31,6 +32,8 @@ function submitOnce(gameId: number, name: string, teamIds: number[]): Promise<Su
 
 export function Results({ team, gameId, onRestart, onOpenLeaderboard }: Props) {
   const ev = useMemo(() => evaluateTeam(team), [team]);
+  // Pick a trainer portrait once per game (stable across card regenerations).
+  const trainerSrc = useMemo(() => pickTrainer(ev.tier.label), [gameId, ev.tier.label]);
 
   const [status, setStatus] = useState<SubmitStatus>("submitting");
   const [data, setData] = useState<SubmitResponse | null>(null);
@@ -92,6 +95,7 @@ export function Results({ team, gameId, onRestart, onOpenLeaderboard }: Props) {
       strengthPts: ev.strengthPts,
       defensePts: ev.defense.pts,
       coveragePts: ev.coverage.pts,
+      trainerSrc,
     }).then((blob) => {
       if (cancelled || !blob) return;
       setCardBlob(blob);
@@ -103,7 +107,7 @@ export function Results({ team, gameId, onRestart, onOpenLeaderboard }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [status, data, displayName, ev, team]);
+  }, [status, data, displayName, ev, team, trainerSrc]);
 
   useEffect(() => () => {
     if (cardUrl) URL.revokeObjectURL(cardUrl);
