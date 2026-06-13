@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
     "composite": true,
+    // Declaration-only: never emit vite.config.js, which would otherwise shadow
+    // vite.config.ts (Vite resolves .js before .ts) and serve a stale config.
+    "emitDeclarationOnly": true,
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "bundler",

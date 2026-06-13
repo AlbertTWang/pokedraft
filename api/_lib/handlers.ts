@@ -4,12 +4,15 @@
 import { randomUUID } from "node:crypto";
 import type {
   LeaderboardResponse,
+  NameResponse,
   RunEntry,
   SubmitResponse,
 } from "../../src/game/leaderboardTypes.js";
-import type { ApiResult } from "./errors.js";
+import { ApiError, type ApiResult } from "./errors.js";
 import { rankScore, scoreTeam } from "./recompute.js";
 import { getStore } from "./store.js";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const MAX_NAME = 20;
 // Matches ASCII control characters (0x00-0x1F and 0x7F).
@@ -45,11 +48,35 @@ export async function submitRun(body: {
     createdAt: Date.now(),
   };
 
-  await store.addRun(entry, rankScore(entry.total, entry.bst));
+  const rs = rankScore(entry.total, entry.bst);
+  await store.addRun(entry, rs);
   const rank = (await store.rankOf(entry.id)) ?? 0;
   const count = await store.count();
+  const window = await store.windowStats(rs, DAY_MS);
 
-  const res: SubmitResponse = { entry: { ...entry, rank }, count };
+  const res: SubmitResponse = {
+    entry: { ...entry, rank },
+    count,
+    percentile: window.percentile,
+    rank24h: window.rank,
+    count24h: window.count,
+  };
+  return { status: 200, json: res };
+}
+
+// Optionally attach a display name to an already-submitted run.
+export async function updateName(body: { id?: unknown; name?: unknown }): Promise<ApiResult> {
+  const store = getStore();
+  if (!store) {
+    return { status: 503, json: { error: "Leaderboard is not configured yet." } };
+  }
+  const id = String(body?.id ?? "").trim();
+  if (!id) throw new ApiError(400, "Missing run id.");
+  const name = sanitizeName(body?.name);
+  const ok = await store.updateName(id, name);
+  if (!ok) throw new ApiError(404, "Run not found.");
+
+  const res: NameResponse = { ok: true, name };
   return { status: 200, json: res };
 }
 

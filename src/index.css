@@ -344,6 +344,29 @@ body {
 }
 .results__actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 
+/* ---- Scorecard (SixRings-style shareable card) ---- */
+.results__headline { color: var(--text-dim); font-size: 15px; text-align: center; margin: 2px 0; }
+.scorecard { width: 100%; max-width: 460px; display: flex; justify-content: center; }
+.scorecard img {
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+.scorecard__loading {
+  width: 100%;
+  max-width: 460px;
+  aspect-ratio: 1080 / 1560;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.nameform { display: flex; gap: 10px; width: 100%; max-width: 460px; }
+
 /* ---- Leaderboard overlay ---- */
 .overlay {
   position: fixed;

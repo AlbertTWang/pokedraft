@@ -16,7 +16,16 @@ export interface RankedEntry extends RunEntry {
 
 export interface SubmitResponse {
   entry: RankedEntry;
-  count: number; // total runs on the board
+  count: number; // total runs on the board (all-time)
+  // Stats over the last 24 hours (the headline numbers on the scorecard):
+  percentile: number; // 0..100, "you beat X% of teams in the last 24h"
+  rank24h: number; // 1-based rank among last-24h teams
+  count24h: number; // total teams in the last 24h
+}
+
+export interface NameResponse {
+  ok: true;
+  name: string;
 }
 
 export interface LeaderboardResponse {

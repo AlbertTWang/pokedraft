@@ -1,34 +1,113 @@
-import { useMemo, useState } from "react";
-import { LeaderboardError, submitRun } from "../game/api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { LeaderboardError, submitRun, updateName } from "../game/api";
 import { lastName, rememberName, saveRun } from "../game/history";
 import type { SubmitResponse } from "../game/leaderboardTypes";
 import { evaluateTeam } from "../game/scoring";
-import { buildShareText, copyText, nativeShare, type ShareData } from "../game/share";
+import { buildShareText, copyText, nativeShare, ordinal, type ShareData } from "../game/share";
 import { generateShareImage } from "../game/shareImage";
 import { TYPE_EMOJI } from "../game/typeEmoji";
 import type { Pokemon } from "../game/types";
-import { TypeBadge } from "./TypeBadge";
 
 interface Props {
   team: Pokemon[];
+  gameId: number;
   onRestart: () => void;
   onOpenLeaderboard: (highlightId?: string) => void;
 }
 
-type SubmitState = "idle" | "submitting" | "done" | "disabled" | "error";
+type SubmitStatus = "submitting" | "done" | "disabled" | "error";
 
-export function Results({ team, onRestart, onOpenLeaderboard }: Props) {
+// Submit a finished run exactly once per game, even across React strict-mode
+// remounts, by caching the in-flight promise by game id.
+const runCache = new Map<number, Promise<SubmitResponse>>();
+function submitOnce(gameId: number, name: string, teamIds: number[]): Promise<SubmitResponse> {
+  let p = runCache.get(gameId);
+  if (!p) {
+    p = submitRun(name, teamIds);
+    runCache.set(gameId, p);
+  }
+  return p;
+}
+
+export function Results({ team, gameId, onRestart, onOpenLeaderboard }: Props) {
   const ev = useMemo(() => evaluateTeam(team), [team]);
-  const [name, setName] = useState(lastName());
-  const [submitState, setSubmitState] = useState<SubmitState>("idle");
-  const [result, setResult] = useState<SubmitResponse | null>(null);
-  const [err, setErr] = useState("");
+
+  const [status, setStatus] = useState<SubmitStatus>("submitting");
+  const [data, setData] = useState<SubmitResponse | null>(null);
+  const [displayName, setDisplayName] = useState(() => lastName() || "Anonymous");
+  const [nameDraft, setNameDraft] = useState(() => lastName());
+  const [savingName, setSavingName] = useState(false);
+
+  const [cardUrl, setCardUrl] = useState<string | null>(null);
+  const [cardBlob, setCardBlob] = useState<Blob | null>(null);
   const [toast, setToast] = useState("");
 
-  const shareUrl =
-    typeof location !== "undefined" && location.origin
-      ? location.origin
-      : "https://pokedraft-lyart.vercel.app";
+  const savedRef = useRef(false);
+
+  // --- auto-submit the run (anonymously, or with a remembered name) ---
+  useEffect(() => {
+    let alive = true;
+    setStatus("submitting");
+    submitOnce(gameId, lastName(), team.map((p) => p.id))
+      .then((res) => {
+        if (!alive) return;
+        setData(res);
+        setDisplayName(res.entry.name);
+        setStatus("done");
+        if (!savedRef.current) {
+          savedRef.current = true;
+          saveRun({
+            id: res.entry.id,
+            name: res.entry.name,
+            total: res.entry.total,
+            tier: res.entry.tier,
+            bst: res.entry.bst,
+            teamIds: res.entry.teamIds,
+            rank: res.rank24h,
+            count: res.count24h,
+            createdAt: res.entry.createdAt,
+          });
+        }
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setStatus(e instanceof LeaderboardError && e.disabled ? "disabled" : "error");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [gameId, team]);
+
+  // --- (re)generate the scorecard once we know the percentile / name ---
+  useEffect(() => {
+    if (status === "submitting") return; // wait for the headline numbers
+    let cancelled = false;
+    generateShareImage({
+      tier: ev.tier.label,
+      total: ev.total,
+      percentile: data?.percentile,
+      rank24h: data?.rank24h,
+      name: displayName,
+      team,
+      strengthPts: ev.strengthPts,
+      defensePts: ev.defense.pts,
+      coveragePts: ev.coverage.pts,
+    }).then((blob) => {
+      if (cancelled || !blob) return;
+      setCardBlob(blob);
+      setCardUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(blob);
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [status, data, displayName, ev, team]);
+
+  useEffect(() => () => {
+    if (cardUrl) URL.revokeObjectURL(cardUrl);
+  }, [cardUrl]);
 
   const shareData: ShareData = {
     tier: ev.tier.label,
@@ -36,10 +115,13 @@ export function Results({ team, onRestart, onOpenLeaderboard }: Props) {
     strengthPts: ev.strengthPts,
     defensePts: ev.defense.pts,
     coveragePts: ev.coverage.pts,
-    rank: result?.entry.rank,
-    count: result?.count,
+    percentile: data?.percentile,
+    rank24h: data?.rank24h,
     typeEmojis: team.map((p) => TYPE_EMOJI[p.types[0]]),
-    url: shareUrl,
+    url:
+      typeof location !== "undefined" && location.origin
+        ? location.origin
+        : "https://pokedraft-lyart.vercel.app",
   };
   const shareText = buildShareText(shareData);
 
@@ -48,70 +130,36 @@ export function Results({ team, onRestart, onOpenLeaderboard }: Props) {
     window.setTimeout(() => setToast(""), 1600);
   }
 
-  async function onSubmit() {
-    setSubmitState("submitting");
-    setErr("");
+  async function onSaveName() {
+    const name = nameDraft.trim();
+    if (!name || !data) return;
+    setSavingName(true);
     try {
-      const r = await submitRun(name, team.map((p) => p.id));
-      setResult(r);
-      setSubmitState("done");
-      rememberName(name);
-      saveRun({
-        id: r.entry.id,
-        name: r.entry.name,
-        total: r.entry.total,
-        tier: r.entry.tier,
-        bst: r.entry.bst,
-        teamIds: r.entry.teamIds,
-        rank: r.entry.rank,
-        count: r.count,
-        createdAt: r.entry.createdAt,
-      });
-    } catch (e) {
-      if (e instanceof LeaderboardError && e.disabled) {
-        setSubmitState("disabled");
-      } else {
-        setErr(e instanceof Error ? e.message : "Submission failed");
-        setSubmitState("error");
-      }
+      const res = await updateName(data.entry.id, name);
+      setDisplayName(res.name);
+      rememberName(res.name);
+      flash("Saved to the leaderboard!");
+    } catch {
+      flash("Couldn't save name");
+    } finally {
+      setSavingName(false);
     }
+  }
+
+  function fileFromCard(): File | undefined {
+    return cardBlob ? new File([cardBlob], "pokedraft.png", { type: "image/png" }) : undefined;
   }
 
   async function onCopy() {
     flash((await copyText(shareText)) ? "Copied to clipboard!" : "Copy failed");
   }
-
   async function onShare() {
-    let file: File | undefined;
-    try {
-      const blob = await generateShareImage({
-        tier: ev.tier.label,
-        total: ev.total,
-        teamIds: team.map((p) => p.id),
-        rank: result?.entry.rank,
-        count: result?.count,
-      });
-      if (blob) file = new File([blob], "pokedraft.png", { type: "image/png" });
-    } catch {
-      /* fall back to text-only share */
-    }
-    const shared = await nativeShare(shareText, file);
+    const shared = await nativeShare(shareText, fileFromCard());
     if (!shared) flash((await copyText(shareText)) ? "Copied to clipboard!" : "Share unavailable");
   }
-
-  async function onDownload() {
-    const blob = await generateShareImage({
-      tier: ev.tier.label,
-      total: ev.total,
-      teamIds: team.map((p) => p.id),
-      rank: result?.entry.rank,
-      count: result?.count,
-    });
-    if (!blob) {
-      flash("Couldn’t make image");
-      return;
-    }
-    const url = URL.createObjectURL(blob);
+  function onDownload() {
+    if (!cardBlob) return;
+    const url = URL.createObjectURL(cardBlob);
     const a = document.createElement("a");
     a.href = url;
     a.download = "pokedraft.png";
@@ -119,113 +167,61 @@ export function Results({ team, onRestart, onOpenLeaderboard }: Props) {
     URL.revokeObjectURL(url);
   }
 
+  const headline =
+    status === "done" && data
+      ? `${ev.tier.label} · ${ev.total}/100 · ${ordinal(data.percentile)} percentile (24h)`
+      : `${ev.tier.label} · ${ev.total}/100`;
+
   return (
     <div className="results">
-      <div className="results__verdict">
-        <div className="results__tierlabel">Your team ranks as a</div>
-        <h1 className="results__tier">{ev.tier.label}</h1>
-        <p className="results__blurb">{ev.tier.blurb}</p>
-        <div className="results__score">
-          <span className="results__total">{ev.total}</span>
-          <span className="results__outof">/ 100</span>
-        </div>
-      </div>
+      <p className="results__headline">{headline}</p>
 
-      <div className="results__breakdown">
-        <ScoreBar label="Strength (BST)" value={ev.strengthPts} max={50}
-          detail={`${ev.bst} total base stats`} />
-        <ScoreBar label="Defensive Synergy" value={ev.defense.pts} max={30}
-          detail={`${ev.defense.resistances} resists · ${ev.defense.immunities} immunities · ${ev.defense.weaknesses} weaknesses`} />
-        <ScoreBar label="Offensive Coverage" value={ev.coverage.pts} max={20}
-          detail={`hits ${ev.coverage.covered}/18 types super-effectively`} />
-      </div>
-
-      <div className="results__team">
-        {team.map((p) => (
-          <div key={p.id} className="results__member">
-            <img src={p.sprite} alt={p.name} />
-            <span className="results__membername">{p.name}</span>
-            <span className="results__memberbst">{p.bst}</span>
-            <div className="results__membertypes">
-              {p.types.map((t) => (
-                <TypeBadge key={t} type={t} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Leaderboard submission */}
-      <div className="submit">
-        {submitState === "done" && result ? (
-          <div className="submit__done">
-            <span className="submit__rank">
-              🌍 Ranked <strong>#{result.entry.rank.toLocaleString()}</strong> of{" "}
-              {result.count.toLocaleString()}
-            </span>
-            <button className="btn btn--ghost" onClick={() => onOpenLeaderboard(result.entry.id)}>
-              View leaderboard
-            </button>
-          </div>
-        ) : submitState === "disabled" ? (
-          <p className="submit__note">
-            Global leaderboard isn’t live yet — your run is saved locally. Sharing still works!
-          </p>
+      <div className="scorecard">
+        {cardUrl ? (
+          <img src={cardUrl} alt={`PokéDraft scorecard — ${ev.tier.label}, ${ev.total} out of 100`} />
         ) : (
-          <div className="submit__form">
-            <input
-              className="submit__input"
-              type="text"
-              maxLength={20}
-              placeholder="Your trainer name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && onSubmit()}
-            />
-            <button
-              className="btn btn--primary"
-              onClick={onSubmit}
-              disabled={submitState === "submitting"}
-            >
-              {submitState === "submitting" ? "Submitting…" : "Submit to leaderboard"}
-            </button>
-          </div>
+          <div className="scorecard__loading">Building your scorecard…</div>
         )}
-        {submitState === "error" && <p className="submit__err">{err}</p>}
       </div>
 
-      {/* Share */}
+      {/* Name (optional) */}
+      {status === "disabled" ? (
+        <p className="submit__note">Leaderboard is offline — your scorecard still works to share.</p>
+      ) : status === "error" ? (
+        <p className="submit__note">Couldn’t reach the leaderboard, but your scorecard is ready below.</p>
+      ) : (
+        <div className="nameform">
+          <input
+            className="submit__input"
+            type="text"
+            maxLength={20}
+            placeholder="Add your name (optional)"
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && onSaveName()}
+            disabled={status === "submitting"}
+          />
+          <button
+            className="btn btn--primary"
+            onClick={onSaveName}
+            disabled={savingName || status === "submitting" || !nameDraft.trim()}
+          >
+            {savingName ? "Saving…" : "Save name"}
+          </button>
+        </div>
+      )}
+
       <div className="share">
-        <button className="btn btn--share" onClick={onCopy}>📋 Copy result</button>
+        <button className="btn btn--share" onClick={onCopy}>📋 Copy</button>
         <button className="btn btn--share" onClick={onShare}>📤 Share</button>
-        <button className="btn btn--share" onClick={onDownload}>🖼️ Download card</button>
+        <button className="btn btn--share" onClick={onDownload} disabled={!cardBlob}>🖼️ Download card</button>
         {toast && <span className="share__toast">{toast}</span>}
       </div>
 
       <div className="results__actions">
-        <button className="btn" onClick={() => onOpenLeaderboard(result?.entry.id)}>
-          🏆 Leaderboard
-        </button>
-        <button className="btn btn--primary" onClick={onRestart}>
-          Draft a new team
-        </button>
+        <button className="btn" onClick={() => onOpenLeaderboard(data?.entry.id)}>🏆 Leaderboard</button>
+        <button className="btn btn--primary" onClick={onRestart}>Draft a new team</button>
       </div>
-    </div>
-  );
-}
-
-function ScoreBar({ label, value, max, detail }: { label: string; value: number; max: number; detail: string }) {
-  const pct = Math.round((value / max) * 100);
-  return (
-    <div className="scorebar">
-      <div className="scorebar__head">
-        <span className="scorebar__label">{label}</span>
-        <span className="scorebar__value">{value}/{max}</span>
-      </div>
-      <div className="scorebar__track">
-        <div className="scorebar__fill" style={{ width: `${pct}%` }} />
-      </div>
-      <div className="scorebar__detail">{detail}</div>
     </div>
   );
 }

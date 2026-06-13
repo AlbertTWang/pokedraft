@@ -23,6 +23,7 @@ export default function App() {
       {state.phase === "results" ? (
         <Results
           team={state.team}
+          gameId={state.id}
           onRestart={() => dispatch({ type: "restart" })}
           onOpenLeaderboard={openLeaderboard}
         />

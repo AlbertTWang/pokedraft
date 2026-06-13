@@ -6,10 +6,16 @@ export interface ShareData {
   strengthPts: number;
   defensePts: number;
   coveragePts: number;
-  rank?: number;
-  count?: number;
+  percentile?: number;
+  rank24h?: number;
   typeEmojis: string[];
   url: string;
+}
+
+export function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 export function buildShareText(d: ShareData): string {
@@ -18,8 +24,8 @@ export function buildShareText(d: ShareData): string {
     d.typeEmojis.join(" "),
     `💪 ${d.strengthPts}  🛡️ ${d.defensePts}  ⚔️ ${d.coveragePts}`,
   ];
-  if (d.rank && d.count) {
-    lines.push(`🌍 Rank #${d.rank.toLocaleString()} of ${d.count.toLocaleString()}`);
+  if (d.percentile != null && d.rank24h != null) {
+    lines.push(`🏆 ${ordinal(d.percentile)} percentile · #${d.rank24h.toLocaleString()} in the last 24h`);
   }
   lines.push(d.url);
   return lines.join("\n");

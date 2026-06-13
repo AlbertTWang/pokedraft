@@ -34,12 +34,15 @@ export interface RoundDeck {
 }
 
 export interface GameState {
+  id: number; // unique per game, used to submit a finished run exactly once
   round: number; // 0-based index of the current pick (0..TEAM_SIZE-1)
   team: Pokemon[];
   deck: RoundDeck;
   lifelines: Record<LifelineKey, number>;
   phase: "drafting" | "results";
 }
+
+let gameCounter = 0;
 
 // --- helpers -------------------------------------------------------------
 
@@ -64,6 +67,7 @@ function deal(type: TypeName, excludeIds: Set<number>): RoundDeck {
 
 export function initGame(): GameState {
   return {
+    id: ++gameCounter,
     round: 0,
     team: [],
     deck: deal(randomType(), new Set()),

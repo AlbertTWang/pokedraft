@@ -1,20 +1,34 @@
-// Generates a shareable PNG score card on a <canvas>. Best-effort:
-// returns null if the canvas or sprite loading fails, so callers can
-// fall back to text sharing.
+// Generates the shareable PokéDraft scorecard PNG on a <canvas>, styled after
+// the SixRings card. Best-effort: returns null if canvas/sprites fail so callers
+// can fall back to text sharing.
 
-import { getPokemonById } from "./data";
-import { TYPE_COLORS } from "./typeColors";
+import { TYPE_COLORS, typeLabel } from "./typeColors";
+import type { Pokemon } from "./types";
+import { ordinal } from "./share";
 
 export interface CardOptions {
   tier: string;
   total: number;
-  teamIds: number[];
-  rank?: number;
-  count?: number;
+  percentile?: number;
+  rank24h?: number;
+  name?: string;
+  team: Pokemon[];
+  strengthPts: number;
+  defensePts: number;
+  coveragePts: number;
 }
 
-const W = 1200;
-const H = 630;
+const W = 1080;
+const H = 1560;
+const PAD = 56;
+const FONT = '"Arial", "Segoe UI", system-ui, sans-serif';
+
+const GOLD = "#f3c14b";
+const INK = "#0c0d13";
+const PANEL = "#14151e";
+const TEXT = "#f5f5fb";
+const MUTED = "#8c91a6";
+const LINE = "rgba(243, 193, 75, 0.18)";
 
 export async function generateShareImage(opts: CardOptions): Promise<Blob | null> {
   const canvas = document.createElement("canvas");
@@ -23,81 +37,96 @@ export async function generateShareImage(opts: CardOptions): Promise<Blob | null
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
-  // Background
-  const bg = ctx.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, "#1b2140");
-  bg.addColorStop(1, "#0f1220");
+  // Background + gold frame
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#16131a");
+  bg.addColorStop(0.5, INK);
+  bg.addColorStop(1, "#0a0b10");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
+  roundRect(ctx, 14, 14, W - 28, H - 28, 28);
+  ctx.strokeStyle = "rgba(243, 193, 75, 0.55)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
 
-  ctx.textAlign = "left";
-  ctx.fillStyle = "#ffd76a";
-  ctx.font = "bold 52px 'Segoe UI', system-ui, sans-serif";
-  ctx.fillText("PokéDraft", 60, 96);
+  // --- Header ---
+  center(ctx);
+  ctx.fillStyle = GOLD;
+  ctx.font = `700 30px ${FONT}`;
+  ctx.fillText("I DRAFTED A", W / 2, 92);
 
-  ctx.textAlign = "right";
-  ctx.fillStyle = "#9aa2c4";
-  ctx.font = "500 26px 'Segoe UI', system-ui, sans-serif";
-  ctx.fillText("Build the ultimate team", W - 60, 92);
+  const title = `${opts.tier.toUpperCase()} TEAM`;
+  const titleSize = fitFont(ctx, title, W - 2 * PAD, 78, "800");
+  ctx.font = `800 ${titleSize}px ${FONT}`;
+  ctx.fillStyle = GOLD;
+  ctx.fillText(title, W / 2, 168);
 
-  // Tier + score
-  ctx.textAlign = "center";
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 88px 'Segoe UI', system-ui, sans-serif";
-  ctx.fillText(opts.tier, W / 2, 210);
+  const named = opts.name && opts.name !== "Anonymous";
+  if (named) {
+    ctx.fillStyle = MUTED;
+    ctx.font = `600 26px ${FONT}`;
+    ctx.fillText(`by ${opts.name}`, W / 2, 210);
+  }
 
-  ctx.fillStyle = "#4ade80";
-  ctx.font = "bold 44px 'Segoe UI', system-ui, sans-serif";
-  ctx.fillText(`${opts.total} / 100`, W / 2, 268);
+  // --- Six pokéballs ---
+  const ballR = 21;
+  const ballGap = 22;
+  const ballRow = 6 * (ballR * 2) + 5 * ballGap;
+  let bx = (W - ballRow) / 2 + ballR;
+  for (let i = 0; i < 6; i++) {
+    drawPokeball(ctx, bx, 258, ballR, i < opts.team.length);
+    bx += ballR * 2 + ballGap;
+  }
 
-  // Team sprites
-  const team = opts.teamIds
-    .map(getPokemonById)
-    .filter((p): p is NonNullable<typeof p> => Boolean(p));
-  const sprites = await Promise.all(team.map((p) => loadImage(p.sprite)));
+  // --- Stat boxes: PERCENTILE / SCORE / RANK PAST 24H ---
+  const boxY = 300;
+  const boxH = 124;
+  const boxGap = 16;
+  const boxW = (W - 2 * PAD - 2 * boxGap) / 3;
+  const pct = opts.percentile != null ? ordinal(opts.percentile).toUpperCase() : "—";
+  const rank = opts.rank24h != null ? `#${opts.rank24h.toLocaleString()}` : "—";
+  statBox(ctx, PAD, boxY, boxW, boxH, "PERCENTILE", pct);
+  statBox(ctx, PAD + boxW + boxGap, boxY, boxW, boxH, "SCORE", `${opts.total}`);
+  statBox(ctx, PAD + 2 * (boxW + boxGap), boxY, boxW, boxH, "RANK PAST 24H", rank);
 
-  const boxW = 160;
-  const gap = 18;
-  const rowW = team.length * boxW + (team.length - 1) * gap;
-  const startX = (W - rowW) / 2;
-  const boxY = 320;
-  const boxH = 180;
-
-  team.forEach((p, i) => {
-    const x = startX + i * (boxW + gap);
-    const color = TYPE_COLORS[p.types[0]];
-    roundRect(ctx, x, boxY, boxW, boxH, 18);
-    ctx.fillStyle = "rgba(255,255,255,0.04)";
-    ctx.fill();
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = color;
-    ctx.stroke();
-
-    const img = sprites[i];
-    if (img) {
-      const pad = 16;
-      drawContain(ctx, img, x + pad, boxY + pad, boxW - pad * 2, boxH - pad * 2 - 22);
-    }
-    ctx.fillStyle = "#eef1ff";
-    ctx.textAlign = "center";
-    ctx.font = "600 18px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillText(truncate(p.name, 12), x + boxW / 2, boxY + boxH - 14);
+  // --- Pokémon rows ---
+  const sprites = await Promise.all(opts.team.map((p) => loadImage(p.sprite)));
+  const rowTop0 = 466;
+  const rowH = 132;
+  opts.team.forEach((p, i) => {
+    drawRow(ctx, rowTop0 + i * rowH, rowH, i + 1, p, sprites[i]);
   });
 
-  // Rank + URL
-  ctx.textAlign = "center";
-  if (opts.rank && opts.count) {
-    ctx.fillStyle = "#ffd76a";
-    ctx.font = "bold 34px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillText(
-      `Rank #${opts.rank.toLocaleString()} of ${opts.count.toLocaleString()}`,
-      W / 2,
-      560,
-    );
-  }
-  ctx.fillStyle = "#9aa2c4";
-  ctx.font = "500 24px 'Segoe UI', system-ui, sans-serif";
-  ctx.fillText("pokedraft-lyart.vercel.app", W / 2, opts.rank ? 600 : 575);
+  // --- Breakdown: STRENGTH / SYNERGY / COVERAGE ---
+  const brkY = rowTop0 + 6 * rowH + 16;
+  const brkH = 104;
+  statBox(ctx, PAD, brkY, boxW, brkH, "STRENGTH", `+${opts.strengthPts}`, 40);
+  statBox(ctx, PAD + boxW + boxGap, brkY, boxW, brkH, "SYNERGY", `+${opts.defensePts}`, 40);
+  statBox(ctx, PAD + 2 * (boxW + boxGap), brkY, boxW, brkH, "COVERAGE", `+${opts.coveragePts}`, 40);
+
+  // --- Total ---
+  const totY = brkY + brkH + 16;
+  roundRect(ctx, PAD, totY, W - 2 * PAD, 76, 16);
+  ctx.fillStyle = "rgba(243, 193, 75, 0.10)";
+  ctx.fill();
+  ctx.strokeStyle = LINE;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  ctx.fillStyle = MUTED;
+  ctx.font = `700 26px ${FONT}`;
+  ctx.fillText("TOTAL SCORE", PAD + 28, totY + 40);
+  ctx.textAlign = "right";
+  ctx.fillStyle = GOLD;
+  ctx.font = `800 48px ${FONT}`;
+  ctx.fillText(`${opts.total} / 100`, W - PAD - 28, totY + 40);
+
+  // --- Footer ---
+  center(ctx);
+  ctx.fillStyle = GOLD;
+  ctx.font = `800 28px ${FONT}`;
+  ctx.fillText("POKEDRAFT-LYART.VERCEL.APP", W / 2, H - 52);
 
   return await new Promise<Blob | null>((resolve) => {
     try {
@@ -106,6 +135,170 @@ export async function generateShareImage(opts: CardOptions): Promise<Blob | null
       resolve(null);
     }
   });
+}
+
+// --- drawing helpers ------------------------------------------------------
+
+function drawRow(
+  ctx: CanvasRenderingContext2D,
+  top: number,
+  h: number,
+  pick: number,
+  p: Pokemon,
+  sprite: HTMLImageElement | null,
+) {
+  const midY = top + h / 2;
+
+  // pick number + primary type
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+  ctx.fillStyle = GOLD;
+  ctx.font = `800 34px ${FONT}`;
+  ctx.fillText(`${pick}`, PAD + 4, midY - 4);
+  ctx.fillStyle = MUTED;
+  ctx.font = `700 16px ${FONT}`;
+  ctx.fillText(typeLabel(p.types[0]).toUpperCase(), PAD + 4, midY + 24);
+
+  // sprite
+  const spriteX = PAD + 78;
+  if (sprite) drawContain(ctx, sprite, spriteX, midY - 52, 104, 104);
+
+  // name + type badges
+  const nameX = PAD + 200;
+  ctx.fillStyle = TEXT;
+  ctx.font = `800 33px ${FONT}`;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(truncate(ctx, p.name, 360), nameX, midY - 2);
+  let badgeX = nameX;
+  for (const t of p.types) badgeX += drawTypeBadge(ctx, badgeX, midY + 14, t) + 8;
+
+  // OFF / DEF / BST
+  const off = p.stats.attack + p.stats.spAtk + p.stats.speed;
+  const def = p.stats.hp + p.stats.defense + p.stats.spDef;
+  miniStat(ctx, W - PAD - 360, midY, "OFF", `${off}`);
+  miniStat(ctx, W - PAD - 230, midY, "DEF", `${def}`);
+
+  ctx.textAlign = "right";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = MUTED;
+  ctx.font = `700 15px ${FONT}`;
+  ctx.fillText("BST", W - PAD - 4, midY - 18);
+  ctx.fillStyle = GOLD;
+  ctx.font = `800 40px ${FONT}`;
+  ctx.fillText(`${p.bst}`, W - PAD - 4, midY + 18);
+
+  // divider
+  ctx.strokeStyle = LINE;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD, top + h);
+  ctx.lineTo(W - PAD, top + h);
+  ctx.stroke();
+}
+
+function miniStat(ctx: CanvasRenderingContext2D, cx: number, midY: number, label: string, value: string) {
+  center(ctx);
+  ctx.fillStyle = MUTED;
+  ctx.font = `700 15px ${FONT}`;
+  ctx.fillText(label, cx, midY - 16);
+  ctx.fillStyle = TEXT;
+  ctx.font = `700 27px ${FONT}`;
+  ctx.fillText(value, cx, midY + 14);
+}
+
+function statBox(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  label: string,
+  value: string,
+  valueSize = 46,
+) {
+  roundRect(ctx, x, y, w, h, 16);
+  ctx.fillStyle = PANEL;
+  ctx.fill();
+  ctx.strokeStyle = LINE;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  center(ctx);
+  ctx.fillStyle = MUTED;
+  ctx.font = `700 19px ${FONT}`;
+  ctx.fillText(label, x + w / 2, y + 38);
+  const size = fitFont(ctx, value, w - 24, valueSize, "800");
+  ctx.font = `800 ${size}px ${FONT}`;
+  ctx.fillStyle = GOLD;
+  ctx.fillText(value, x + w / 2, y + h - 34);
+}
+
+function drawTypeBadge(ctx: CanvasRenderingContext2D, x: number, y: number, type: Pokemon["types"][number]): number {
+  const label = typeLabel(type).toUpperCase();
+  ctx.font = `800 15px ${FONT}`;
+  const w = ctx.measureText(label).width + 20;
+  const h = 25;
+  roundRect(ctx, x, y, w, h, 12);
+  ctx.fillStyle = TYPE_COLORS[type];
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, x + 10, y + h / 2 + 1);
+  return w;
+}
+
+function drawPokeball(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, filled: boolean) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = "#15161e";
+  ctx.fill();
+  // top half
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, 0);
+  ctx.fillStyle = filled ? GOLD : "#2a2c39";
+  ctx.fill();
+  // outline + equator
+  ctx.strokeStyle = filled ? GOLD : "#3a3d4d";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx - r, cy);
+  ctx.lineTo(cx + r, cy);
+  ctx.stroke();
+  // center button
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.32, 0, Math.PI * 2);
+  ctx.fillStyle = "#15161e";
+  ctx.fill();
+  ctx.strokeStyle = filled ? GOLD : "#3a3d4d";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function fitFont(ctx: CanvasRenderingContext2D, text: string, maxW: number, base: number, weight: string): number {
+  let size = base;
+  ctx.font = `${weight} ${size}px ${FONT}`;
+  while (ctx.measureText(text).width > maxW && size > 18) {
+    size -= 2;
+    ctx.font = `${weight} ${size}px ${FONT}`;
+  }
+  return size;
+}
+
+function truncate(ctx: CanvasRenderingContext2D, text: string, maxW: number): string {
+  if (ctx.measureText(text).width <= maxW) return text;
+  let s = text;
+  while (s.length > 1 && ctx.measureText(s + "…").width > maxW) s = s.slice(0, -1);
+  return s + "…";
+}
+
+function center(ctx: CanvasRenderingContext2D) {
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
 }
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -147,8 +340,4 @@ function roundRect(
   ctx.arcTo(x, y + h, x, y, r);
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
-}
-
-function truncate(s: string, max: number): string {
-  return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }

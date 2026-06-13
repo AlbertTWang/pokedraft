@@ -1,6 +1,6 @@
 // Client wrappers for the leaderboard API.
 
-import type { LeaderboardResponse, SubmitResponse } from "./leaderboardTypes";
+import type { LeaderboardResponse, NameResponse, SubmitResponse } from "./leaderboardTypes";
 
 export class LeaderboardError extends Error {
   constructor(
@@ -32,6 +32,15 @@ export async function submitRun(name: string, teamIds: number[]): Promise<Submit
     body: JSON.stringify({ name, teamIds }),
   });
   return parse<SubmitResponse>(res);
+}
+
+export async function updateName(id: string, name: string): Promise<NameResponse> {
+  const res = await fetch("/api/name", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ id, name }),
+  });
+  return parse<NameResponse>(res);
 }
 
 export async function fetchLeaderboard(limit = 25): Promise<LeaderboardResponse> {

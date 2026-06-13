@@ -14,7 +14,7 @@ function devApi(): Plugin {
         const path = url.split("?")[0];
         try {
           const mod = await server.ssrLoadModule("/api/_lib/handlers.ts");
-          const { handle, submitRun, getLeaderboard } = mod;
+          const { handle, submitRun, getLeaderboard, updateName } = mod;
 
           // Own every /api/* path so Vite never serves the raw .ts source.
           let result: { status: number; json: unknown };
@@ -22,6 +22,13 @@ function devApi(): Plugin {
             if (req.method === "POST") {
               const body = await readBody(req);
               result = await handle(() => submitRun(body));
+            } else {
+              result = { status: 405, json: { error: "Method not allowed" } };
+            }
+          } else if (path === "/api/name") {
+            if (req.method === "POST") {
+              const body = await readBody(req);
+              result = await handle(() => updateName(body));
             } else {
               result = { status: 405, json: { error: "Method not allowed" } };
             }
